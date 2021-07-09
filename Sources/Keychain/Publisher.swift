@@ -8,7 +8,6 @@
 import Foundation
 import Combine
 
-@available(iOS 13.0, *)
 public extension Publisher where Output : Codable {
     func saveToKeychain<Key: Hashable>(forKey key: Key, keychain: KeychainClient = .init()) -> AnyPublisher<Output, Failure> {
         handleEvents(receiveOutput: { output in
