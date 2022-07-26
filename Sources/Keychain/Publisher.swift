@@ -9,7 +9,7 @@ import Foundation
 import Combine
 
 public extension Publisher where Output : Codable {
-    func saveToKeychain<Key: Hashable>(forKey key: Key, keychain: KeychainClient = .init()) -> AnyPublisher<Output, Failure> {
+    func saveToKeychain(forKey key: String, keychain: KeychainClient = .init()) -> AnyPublisher<Output, Failure> {
         handleEvents(receiveOutput: { output in
             try? keychain.insert(output, forKey: key)
         }).eraseToAnyPublisher()

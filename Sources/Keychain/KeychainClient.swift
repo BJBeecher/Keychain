@@ -47,15 +47,13 @@ public final class KeychainClient {
 // public API
 
 public extension KeychainClient {
-    func insert<Key: Hashable, Value: Codable>(_ value: Value, forKey key: Key) throws {
-        // grab hash value from key
-        let hashValue = key.hashValue
+    func insert<Value: Codable>(_ value: Value, forKey key: String) throws {
         // format value for acceptable insert
         let data = try encoder.encode(value)
         // create insert query
         let query : [String : Any] = [
             kSecClass as String : kSecClassGenericPassword,
-            kSecAttrAccount as String : "\(hashValue)", // must use account key as primary key for searchability -- attrLabel will not work
+            kSecAttrAccount as String : key, // must use account key as primary key for searchability -- attrLabel will not work
             kSecValueData as String : data
         ]
         // run query
@@ -93,13 +91,11 @@ public extension KeychainClient {
         }
     }
     
-    func value<Key: Hashable, Value: Codable>(forKey key: Key) throws -> Value? {
-        // grab hash value from key
-        let hashValue = key.hashValue
+    func value<Value: Codable>(forKey key: String) throws -> Value? {
         // specify query to run against keychain
         let query = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String : "\(hashValue)",
+            kSecAttrAccount as String : key,
             kSecMatchLimit as String: kSecMatchLimitOne,
             kSecReturnAttributes as String: true,
             kSecReturnData as String: true
@@ -138,7 +134,7 @@ public extension KeychainClient {
         }
     }
     
-    subscript<Key: Hashable, Value: Codable>(key: Key) -> Value? {
+    subscript<Value: Codable>(key: String) -> Value? {
         get {
             try? value(forKey: key)
         } set {
