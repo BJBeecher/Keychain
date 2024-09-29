@@ -25,7 +25,7 @@ public final class KeychainClient {
     
     init(
         addItem: @escaping AddItem,
-        updateItem: @escaping UpdateItem ,
+        updateItem: @escaping UpdateItem,
         fetchItem: @escaping FetchItem,
         deleteItem: @escaping DeleteItem,
         encoder: JSONEncoder,
@@ -47,6 +47,11 @@ public final class KeychainClient {
 // public API
 
 public extension KeychainClient {
+    
+    /// Creates a new keychain record (throws if exists)
+    /// - Parameters:
+    ///   - value: value to insert
+    ///   - key: key describing value
     func insert<Value: Codable>(_ value: Value, forKey key: String) throws {
         // format value for acceptable insert
         let data = try encoder.encode(value)
@@ -69,15 +74,37 @@ public extension KeychainClient {
         }
     }
     
-    func updateValue<Key: Hashable, Value: Codable>(with newValue: Value, forKey key: Key) throws {
-        // grab hash value from key
-        let hashValue = key.hashValue
+    
+    /// Inserts if does not exist and updates if does
+    /// - Parameters:
+    ///   - value: value to insert/update
+    ///   - key: key for query
+    func save<Value: Codable>(_ value: Value, forKey key: String) throws {
+        do {
+            try insert(value, forKey: key)
+        } catch let error as KeychainFailure {
+            guard case .badStatus(let status) = error, status == errSecDuplicateItem else {
+                throw error
+            }
+            
+            try updateValue(with: value, forKey: key)
+        } catch {
+            throw error
+        }
+    }
+    
+    
+    /// Updates existing value in keychain using key to lookup
+    /// - Parameters:
+    ///   - newValue: value to replace existing value
+    ///   - key: key to find value
+    func updateValue<Value: Codable>(with newValue: Value, forKey key: String) throws {
         // format value for acceptable insert
         let newData = try encoder.encode(newValue)
         // create the search query
         let searchQuery : [String : Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String : "\(hashValue)"
+            kSecAttrAccount as String : key
         ]
         // create query
         let updateQuery : [String : Any] = [
@@ -91,6 +118,9 @@ public extension KeychainClient {
         }
     }
     
+    /// fetches value saved on keychain
+    /// - Parameter key: key for query
+    /// - Returns: value to fetch
     func value<Value: Codable>(forKey key: String) throws -> Value? {
         // specify query to run against keychain
         let query = [
@@ -118,13 +148,13 @@ public extension KeychainClient {
         }
     }
     
-    func deleteValue<Key: Hashable>(forKey key: Key) throws {
-        // grab hash value from key
-        let hashValue = key.hashValue
+    /// deletes item on keychain
+    /// - Parameter key: key for query
+    func deleteValue(forKey key: String) throws {
         // query for the item to delete
         let query : [String : Any] = [
             kSecClass as String : kSecClassGenericPassword,
-            kSecAttrAccount as String : "\(hashValue)",
+            kSecAttrAccount as String : key,
         ]
         // run the delete query
         let status = deleteItem(query as CFDictionary)

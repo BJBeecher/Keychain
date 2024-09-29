@@ -27,7 +27,7 @@ public struct KeychainItem<T: Codable> {
     public var wrappedValue : T? {
         willSet {
             if let item = newValue {
-                try? keychainService.insert(item, forKey: key)
+                try? keychainService.save(item, forKey: key)
             } else {
                 try? keychainService.deleteValue(forKey: key)
             }
